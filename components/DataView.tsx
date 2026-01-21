@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { Check, X, Edit2, Save, Download, FileText, Table as TableIcon, AlertCircle } from 'lucide-react';
+import { Check, Edit2, Save, FileText, Table as TableIcon, AlertCircle, CloudUpload, Loader2, FileCode } from 'lucide-react';
 import { TCT_COLUMNS, OLYMEL_COLUMNS } from '../constants';
 import { DocumentType, ExtractionRow } from '../types';
+import { saveExtractionToSupabase } from '../services/supabaseService';
 
 interface DataViewProps {
   data: ExtractionRow[];
@@ -13,6 +14,8 @@ interface DataViewProps {
 const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedRows, setEditedRows] = useState<ExtractionRow[]>(data);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const columns = docType === DocumentType.TCT ? TCT_COLUMNS : OLYMEL_COLUMNS;
 
@@ -20,6 +23,21 @@ const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
     setEditedRows(prev => prev.map(row => 
       row.id === id ? { ...row, [key]: value } : row
     ));
+  };
+
+  const handleSupabaseSync = async () => {
+    setIsSaving(true);
+    setSaveStatus('idle');
+    try {
+      await saveExtractionToSupabase(editedRows, docType);
+      setSaveStatus('success');
+      setTimeout(() => onSave(editedRows), 1500);
+    } catch (err) {
+      setSaveStatus('error');
+      alert(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleExportCSV = () => {
@@ -41,15 +59,15 @@ const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
   const isEmpty = editedRows.length === 0;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex flex-col min-h-0 animate-in fade-in">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary-600/20 rounded-lg text-primary-400">
             <TableIcon size={20} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Résultats d'Extraction</h3>
-            <p className="text-xs text-slate-500">{editedRows.length} lignes détectées pour {docType}</p>
+            <h3 className="text-lg font-bold text-white">Résultats Combinés</h3>
+            <p className="text-xs text-slate-500">{editedRows.length} lignes extraites en parallèle</p>
           </div>
         </div>
         
@@ -61,21 +79,26 @@ const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
                 className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all text-sm font-medium"
               >
                 <FileText size={16} />
-                Exporter CSV
+                CSV
               </button>
               <button 
-                onClick={() => onSave(editedRows)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-all text-sm font-semibold shadow-lg shadow-primary-600/20"
+                onClick={handleSupabaseSync}
+                disabled={isSaving}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-semibold shadow-lg ${
+                  saveStatus === 'success' 
+                  ? 'bg-emerald-600 text-white' 
+                  : 'bg-primary-600 hover:bg-primary-500 text-white shadow-primary-600/20'
+                }`}
               >
-                <Save size={16} />
-                Confirmer
+                {isSaving ? <Loader2 size={16} className="animate-spin" /> : saveStatus === 'success' ? <Check size={16} /> : <CloudUpload size={16} />}
+                {isSaving ? 'Synchronisation...' : saveStatus === 'success' ? 'Enregistré !' : 'Sauvegarder Supabase'}
               </button>
             </>
           )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto rounded-xl border border-slate-800 bg-dark-900 shadow-2xl">
+      <div className="flex-1 overflow-auto rounded-xl border border-slate-800 bg-dark-900 shadow-2xl custom-scrollbar">
         {isEmpty ? (
           <div className="h-full flex flex-col items-center justify-center p-12 text-slate-500">
             <AlertCircle size={48} className="mb-4 opacity-20" />
@@ -86,6 +109,7 @@ const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
             <thead className="sticky top-0 bg-dark-800 border-b border-slate-700 z-10">
               <tr>
                 <th className="p-4 w-12 text-center text-slate-500 font-medium">#</th>
+                <th className="p-4 text-slate-400 font-semibold whitespace-nowrap min-w-[150px] bg-dark-800/80 backdrop-blur-sm border-r border-slate-700">Source Document</th>
                 {columns.map(col => (
                   <th key={col.key} className="p-4 text-slate-400 font-semibold whitespace-nowrap min-w-[150px]">
                     {col.label}
@@ -98,6 +122,9 @@ const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
               {editedRows.map((row, idx) => (
                 <tr key={row.id} className="group hover:bg-slate-800/30 transition-colors">
                   <td className="p-4 text-center text-slate-600 font-mono text-xs">{idx + 1}</td>
+                  <td className="p-4 text-xs font-medium text-primary-400/80 italic border-r border-slate-800/50 max-w-[150px] truncate">
+                    {(row as any).source_file || 'Inconnu'}
+                  </td>
                   {columns.map(col => (
                     <td key={col.key} className="p-2">
                       {editingId === row.id ? (

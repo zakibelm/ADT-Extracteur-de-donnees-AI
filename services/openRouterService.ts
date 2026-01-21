@@ -17,21 +17,19 @@ export const extractDataWithOpenRouter = async (
 
   const currentSchemaFields = docType === DocumentType.TCT ? schemaTCT : schemaOlymel;
   
-  const defaultPrompt = `Tu es un expert OCR spécialisé dans les documents de transport Taxi Coop Terrebonne.
-Analyse l'image ligne par ligne, de haut en bas.
+  const defaultPrompt = `Tu es un expert OCR spécialisé dans les documents de transport.
+Analyse l'image et extrais les données du tableau.
 
-### OBJECTIF
-Extraire TOUTES les lignes de données du tableau. Ignore les en-têtes du document, concentre-toi sur le contenu du tableau.
+### STRUCTURE JSON ATTENDUE
+Retourne UNIQUEMENT un objet JSON comme ceci : {"rows": [{"champ1": "valeur", ...}]}.
 
-### STRUCTURE JSON
-Retourne un JSON avec cette structure exacte : {"rows": [...]}.
-Chaque ligne doit utiliser ces clés : ${currentSchemaFields}
+### CHAMPS À UTILISER
+${currentSchemaFields}
 
-### INSTRUCTIONS CRITIQUES
-1. **ZÉRO TEXTE** : Ne réponds que par le JSON. Pas de "Voici les données", etc.
-2. **FIDÉLITÉ** : Si une colonne comme 'Nom de l'employé' contient un nom, il DOIT aller dans 'nomEmploye'.
-3. **COMPLÉTION** : Ne saute aucune ligne du tableau. Si tu vois 10 lignes, extrais 10 objets.
-4. **VALEURS** : Utilise "" pour les cellules vides. Ne mets jamais "null" ou "undefined".`;
+### RÈGLES
+1. Pas de texte avant ou après le JSON.
+2. Si une cellule est illisible ou vide, utilise "".
+3. Extrais absolument toutes les lignes visibles.`;
 
   const systemInstruction = docType === DocumentType.TCT 
     ? (customPromptTCT || defaultPrompt) 
@@ -47,8 +45,6 @@ Chaque ligne doit utiliser ces clés : ${currentSchemaFields}
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": window.location.origin,
-        "X-Title": "ADT Extracteur"
       },
       body: JSON.stringify({
         "model": model,
@@ -57,13 +53,12 @@ Chaque ligne doit utiliser ces clés : ${currentSchemaFields}
           {
             "role": "user",
             "content": [
-              { "type": "text", "text": "Extrais scrupuleusement chaque ligne de ce tableau dans le format JSON demandé." },
+              { "type": "text", "text": "Extrais les données de ce tableau en JSON." },
               { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${cleanBase64}` } }
             ]
           }
         ],
-        "temperature": 0, // Réduit pour plus de stabilité
-        "max_tokens": 4000,
+        "temperature": 0.1,
         "response_format": { "type": "json_object" }
       })
     });
@@ -74,101 +69,43 @@ Chaque ligne doit utiliser ces clés : ${currentSchemaFields}
     }
 
     const data = await response.json();
-    let rawContent = data.choices[0].message.content.trim();
+    let content = data.choices[0].message.content.trim();
     
-    // Nettoyage robuste du JSON
-    const match = rawContent.match(/\{[\s\S]*\}/);
-    let jsonString = match ? match[0] : rawContent;
-
+    // Tentative de parsing flexible
+    let parsed: any;
     try {
-      const parsed = JSON.parse(jsonString);
-      let rawRows: any[] = [];
-      
-      if (parsed.rows && Array.isArray(parsed.rows)) {
-        rawRows = parsed.rows;
-      } else if (Array.isArray(parsed)) {
-        rawRows = parsed;
+      parsed = JSON.parse(content);
+    } catch (e) {
+      // Si le JSON est mal formé, on essaie d'extraire ce qui ressemble à un objet
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
       } else {
-        const arrayKey = Object.keys(parsed).find(k => Array.isArray(parsed[k]));
-        rawRows = arrayKey ? parsed[arrayKey] : [parsed];
+        throw new Error("Format de réponse invalide.");
       }
-
-      const normalizeRow = (row: any) => {
-        const normalized: any = {};
-        
-        // Dictionnaire de mapping intelligent
-        const fieldMapping: Record<string, string[]> = {
-          'tournee': ['tournee', 'tournée', 'code', 'tct', 'no tournee'],
-          'nom': ['nom', 'compagnie', 'name', 'client'],
-          'debTour': ['debtour', 'deb tour', 'déb tour', 'début tour', 'start'],
-          'finTour': ['fintour', 'fin tour', 'fin_tour', 'end'],
-          'clVeh': ['clveh', 'cl véh', 'classe', 'veh type'],
-          'employe': ['employe', 'id', 'no employe', 'employé'],
-          'nomEmploye': ['nomemploye', 'nom de l\'employé', 'nom employé', 'employee name'],
-          'employeConfirm': ['employeconfirm', 'employé (confirm)', 'confirm', 'confirmation'],
-          'vehicule': ['vehicule', 'véhicule', 'no véhicule', 'car', 'unit'],
-          'changement': ['changement', 'change'],
-          'changementPar': ['changementpar', 'changement par', 'by'],
-          'clVehAff': ['clvehaff', 'cl véh aff', 'classe aff', 'assigned class'],
-          'autoris': ['autoris', 'autorisation', 'auth'],
-          'approuve': ['approuve', 'approuvé', 'approved'],
-          'retour': ['retour', 'return'],
-          'adresseDebut': ['adressedebut', 'adresse de début', 'start address', 'origine'],
-          'adresseFin': ['adressefin', 'adresse de fin', 'end address', 'destination'],
-          // Olymel
-          'semaine': ['semaine', 'week'],
-          'jour': ['jour', 'day'],
-          'date': ['date'],
-          'debut': ['debut', 'début', 'start'],
-          'fin': ['fin', 'end'],
-          'duree': ['duree', 'durée', 'hours'],
-          'chauffeur': ['chauffeur', 'driver'],
-          'notes': ['notes', 'remarques']
-        };
-
-        const clean = (s: string) => s.toLowerCase().trim()
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Enlève les accents
-          .replace(/[^a-z0-s]/g, ''); // Garde que les lettres a-z
-
-        // On parcourt les clés de l'objet généré par l'IA
-        Object.keys(row).forEach(aiKey => {
-          const aiKeyClean = clean(aiKey);
-          let found = false;
-
-          for (const [targetKey, variations] of Object.entries(fieldMapping)) {
-            if (variations.some(v => clean(v) === aiKeyClean)) {
-              normalized[targetKey] = row[aiKey];
-              found = true;
-              break;
-            }
-          }
-          // Si on n'a pas trouvé de mapping, on garde la clé telle quelle si elle match une clé cible
-          if (!found) {
-            const schemaKeys = currentSchemaFields.split(', ');
-            if (schemaKeys.includes(aiKey)) normalized[aiKey] = row[aiKey];
-          }
-        });
-
-        // Complétion des champs manquants
-        currentSchemaFields.split(', ').forEach(field => {
-          if (!normalized[field]) normalized[field] = "";
-        });
-
-        return normalized;
-      };
-
-      // Filtrer les lignes totalement vides qui pourraient être du bruit
-      return rawRows
-        .map(normalizeRow)
-        .filter(row => {
-          const values = Object.values(row).filter(v => v !== "");
-          return values.length > 2; // Une ligne doit avoir au moins 3 colonnes remplies
-        });
-
-    } catch (parseErr) {
-      throw new Error("Erreur critique de parsing. Le document est peut-être trop complexe.");
     }
+
+    let rawRows = parsed.rows || parsed.data || (Array.isArray(parsed) ? parsed : []);
+    
+    if (!Array.isArray(rawRows) && typeof parsed === 'object') {
+      // Si l'IA a mis les lignes dans une autre clé
+      const firstArrayKey = Object.keys(parsed).find(k => Array.isArray(parsed[k]));
+      if (firstArrayKey) rawRows = parsed[firstArrayKey];
+    }
+
+    // Normalisation
+    return rawRows.map((row: any) => {
+      const normalized: any = {};
+      currentSchemaFields.split(', ').forEach(field => {
+        // Cherche une correspondance insensible à la casse
+        const foundKey = Object.keys(row).find(k => k.toLowerCase().replace(/[^a-z]/g, '') === field.toLowerCase().replace(/[^a-z]/g, ''));
+        normalized[field] = foundKey ? String(row[foundKey]) : "";
+      });
+      return normalized;
+    }).filter((row: any) => Object.values(row).some(v => v !== ""));
+
   } catch (err: any) {
-    throw new Error(err.message || "Erreur d'extraction.");
+    console.error("Extraction Error:", err);
+    throw new Error(err.message || "Erreur lors de l'analyse.");
   }
 };
