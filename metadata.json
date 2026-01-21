@@ -1,0 +1,7 @@
+{
+  "name": "ADT - Extracteur de Données IA",
+  "description": "Système d'automatisation de données tabulaires pour Taxi Coop Terrebonne, extrayant des informations logistiques de documents PDF/Images vers des formats structurés.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
