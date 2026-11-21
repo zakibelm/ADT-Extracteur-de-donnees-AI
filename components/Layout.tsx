@@ -1,125 +1,159 @@
-
-import React from 'react';
-import { 
-  LayoutDashboard, 
-  FileSpreadsheet, 
-  History, 
-  Settings, 
-  ChevronRight, 
+import React from "react";
+import {
+  LayoutDashboard,
+  Settings,
   LogOut,
-  Truck,
-  Calendar,
-  Layers
-} from 'lucide-react';
-import { COMPANY_NAME, APP_VERSION } from '../constants';
-import { supabase } from '../services/supabaseService';
+  FileText,
+  Layers,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ArrowUpRight,
+} from "lucide-react";
+import { APP_VERSION } from "../constants";
+import { supabase } from "../services/supabaseService";
 
 interface LayoutProps {
   children: React.ReactNode;
   activeSection: string;
   setActiveSection: (section: string) => void;
+  navigationDisabled?: boolean;
 }
-
-const Layout: React.FC<LayoutProps> = ({ children, activeSection, setActiveSection }) => {
+const Layout: React.FC<LayoutProps> = ({
+  children,
+  activeSection,
+  setActiveSection,
+  navigationDisabled = false,
+}) => {
   const [user, setUser] = React.useState<any>(null);
-
+  const [expanded, setExpanded] = React.useState(true);
   React.useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
-    };
-    fetchUser();
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const menuItems = [
-    { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-    { id: 'tct', label: 'Logistique (TCT)', icon: Truck, subItems: ['Extraction', 'Document Final', 'Rapports'] },
-    { id: 'olymel', label: 'Transport (Assignations)', icon: Layers, subItems: ['Extraction', 'Calendrier', 'Rapports'] },
-    { id: 'history', label: 'Historique', icon: History },
-    { id: 'settings', label: 'Paramètres', icon: Settings },
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Utilisateur";
+  const domeDisplay = user?.user_metadata?.dome
+    ? `Dôme ${user.user_metadata.dome}`
+    : "Membre ADT";
+  const items = [
+    { id: "dashboard", label: "Vue d’ensemble", icon: LayoutDashboard },
+    { id: "tct", label: "Documents TCT", icon: FileText },
+    { id: "olymel", label: "Assignations Olymel", icon: Layers },
   ];
-
-  // Get user display info securely
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Utilisateur";
-  const domeDisplay = user?.user_metadata?.dome ? `Dôme ${user.user_metadata.dome}` : 'Membre ADT';
-
   return (
-    <div className="flex min-h-screen bg-dark-950 text-slate-300">
-      {/* Sidebar */}
-      <aside className="w-64 bg-dark-900 border-r border-slate-800 flex flex-col sticky top-0 h-screen">
-        <div className="p-6 border-b border-slate-800">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-primary-600/20">A</div>
-            <h1 className="text-xl font-bold text-white tracking-tight">ADT</h1>
-          </div>
-          <p className="text-xs text-slate-500 font-medium">{COMPANY_NAME}</p>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          {menuItems.map((item) => (
-            <div key={item.id} className="space-y-1">
-              <button
-                onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group ${
-                  activeSection === item.id 
-                    ? 'bg-primary-600/10 text-primary-400 border border-primary-600/20' 
-                    : 'hover:bg-slate-800/50 text-slate-400'
-                }`}
-              >
-                <item.icon size={20} className={activeSection === item.id ? 'text-primary-400' : 'group-hover:text-slate-200'} />
-                <span className="font-medium text-sm">{item.label}</span>
-                {item.subItems && <ChevronRight size={14} className={`ml-auto transition-transform ${activeSection === item.id ? 'rotate-90' : ''}`} />}
-              </button>
-              
-              {item.subItems && activeSection === item.id && (
-                <div className="ml-9 space-y-1 mt-1 animate-in slide-in-from-left-2">
-                  {item.subItems.map((sub) => (
-                    <button 
-                      key={sub}
-                      className="w-full text-left py-1.5 px-2 text-xs text-slate-500 hover:text-slate-200 transition-colors"
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
+    <div className={`app-shell ${expanded ? "" : "nav-collapsed"}`}>
+      <a className="skip-link" href="#main-content">
+        Aller au contenu
+      </a>
+      <aside className="sidebar" aria-label="Navigation principale">
+        <a href="#main-content" className="brand">
+          <span className="brand-symbol">
+            a<span>↗</span>
+          </span>
+          <span className="nav-label">
+            <strong>
+              ADT<span className="brand-dot">.</span>
+            </strong>
+            <small>EXTRACTION DE DONNÉES</small>
+          </span>
+        </a>
+        <span className="nav-caption nav-label">ESPACE DE TRAVAIL</span>
+        <nav>
+          {items.map((item) => (
+            <button
+              key={item.id}
+              title={item.label}
+              aria-label={item.label}
+              disabled={navigationDisabled}
+              aria-current={activeSection === item.id ? "page" : undefined}
+              className={`nav-item ${activeSection === item.id ? "active" : ""}`}
+              onClick={() => setActiveSection(item.id)}
+            >
+              <item.icon size={19} />
+              <span className="nav-label">{item.label}</span>
+              {activeSection === item.id && (
+                <span className="active-dot nav-label" />
               )}
-            </div>
+            </button>
           ))}
         </nav>
-
-        <div className="p-4 border-t border-slate-800 mt-auto space-y-3">
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-800/30 border border-slate-700/50">
-            <div className="w-8 h-8 shrink-0 rounded-full bg-primary-600/20 flex items-center justify-center text-xs font-bold text-primary-400 uppercase">
-              {displayName.charAt(0)}
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-xs font-medium text-slate-200 truncate">{displayName}</p>
-              <p className="text-[10px] text-slate-500 truncate">{domeDisplay}</p>
-            </div>
+        <div className="sidebar-bottom">
+          <div className="sidebar-tip nav-label">
+            <ArrowUpRight size={21} />
+            <strong>Du document à l’action.</strong>
+            <p>Vos opérations commencent avec des données lisibles.</p>
           </div>
-          
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm font-medium"
+          <button
+            className={`nav-item ${activeSection === "settings" ? "active" : ""}`}
+            title="Paramètres"
+            aria-label="Paramètres"
+            disabled={navigationDisabled}
+            aria-current={activeSection === "settings" ? "page" : undefined}
+            onClick={() => setActiveSection("settings")}
+          >
+            <Settings size={19} />
+            <span className="nav-label">Paramètres</span>
+          </button>
+          <div className="user-card">
+            <span className="avatar">
+              {displayName.charAt(0).toUpperCase()}
+            </span>
+            <span className="nav-label">
+              <strong>{displayName}</strong>
+              <small>{domeDisplay}</small>
+            </span>
+          </div>
+          <button
+            className="nav-item logout"
+            title="Déconnexion"
+            aria-label="Déconnexion"
+            disabled={navigationDisabled}
+            onClick={() => supabase.auth.signOut()}
           >
             <LogOut size={18} />
-            Déconnexion
+            <span className="nav-label">Déconnexion</span>
           </button>
-          
-          <p className="text-[10px] text-center text-slate-600">v{APP_VERSION} • © 2025</p>
+          <p className="sidebar-version nav-label">ADT · v{APP_VERSION}</p>
         </div>
       </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col relative">
-        {children}
-      </main>
+      <div className="main-shell">
+        <div className="topbar">
+          <button
+            className="icon-button"
+            aria-label={
+              expanded ? "Réduire la navigation" : "Déployer la navigation"
+            }
+            aria-expanded={expanded}
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? (
+              <PanelLeftClose size={20} />
+            ) : (
+              <PanelLeftOpen size={20} />
+            )}
+          </button>
+          <span>
+            Poste de contrôle <span className="topbar-divider">/</span>{" "}
+            <strong>
+              {activeSection === "dashboard"
+                ? "Vue d’ensemble"
+                : activeSection === "settings"
+                  ? "Paramètres"
+                  : "Extraction"}
+            </strong>
+          </span>
+          <span className="topbar-end">ADT WORKSPACE</span>
+        </div>
+        <main id="main-content" tabIndex={-1}>
+          {children}
+        </main>
+        <footer className="workspace-footer">
+          <span>ADT · Extracteur de données</span>
+          <span>Importez. Vérifiez. Avancez.</span>
+        </footer>
+      </div>
     </div>
   );
 };
-
 export default Layout;
