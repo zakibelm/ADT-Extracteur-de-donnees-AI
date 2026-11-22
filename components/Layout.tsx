@@ -2,6 +2,7 @@ import React from "react";
 import {
   LayoutDashboard,
   Settings,
+  ShieldCheck,
   LogOut,
   FileText,
   Layers,
@@ -10,7 +11,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { APP_VERSION } from "../constants";
-import { supabase } from "../services/supabaseService";
+import { supabase, isAdtAdmin } from "../services/supabaseService";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -41,6 +42,7 @@ const Layout: React.FC<LayoutProps> = ({
     { id: "tct", label: "Documents TCT", icon: FileText },
     { id: "olymel", label: "Assignations Olymel", icon: Layers },
   ];
+  if (isAdtAdmin(user)) items.push({ id: "admin", label: "Administration", icon: ShieldCheck });
   return (
     <div className={`app-shell ${expanded ? "" : "nav-collapsed"}`}>
       <a className="skip-link" href="#main-content">

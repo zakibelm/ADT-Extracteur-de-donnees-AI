@@ -23,6 +23,7 @@ interface DataViewProps {
 const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedRows, setEditedRows] = useState<ExtractionRow[]>(data);
+  const [saveRequestId] = useState(() => crypto.randomUUID());
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">(
     "idle",
@@ -40,7 +41,7 @@ const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
     setIsSaving(true);
     setSaveStatus("idle");
     try {
-      await saveExtractionToSupabase(editedRows, docType);
+      await saveExtractionToSupabase(editedRows, docType, saveRequestId);
       setSaveStatus("success");
       setTimeout(() => onSave(editedRows), 1500);
     } catch (err) {

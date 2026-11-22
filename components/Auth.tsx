@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { supabase } from "../services/supabaseService";
+import { supabase, internalEmail } from "../services/supabaseService";
 import {
   Mail,
   Lock,
@@ -23,13 +23,14 @@ const Auth: React.FC = () => {
   } | null>(null);
 
   const [dome, setDome] = useState("");
+  const [password, setPassword] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
   const getInternalEmail = (domeVal: string) =>
-    `${domeVal.toLowerCase().trim()}@adt.system`;
+    internalEmail(domeVal);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,16 +41,16 @@ const Auth: React.FC = () => {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({
           email: getInternalEmail(dome),
-          password: employeeId,
+          password,
         });
         if (error)
           throw new Error(
-            "Dôme ou ID employé incorrect. Si vous n'avez pas de compte, cliquez sur 'S'inscrire ici'.",
+            "Dôme ou mot de passe incorrect, ou compte non activé.",
           );
       } else if (mode === "register") {
         const { error, data } = await supabase.auth.signUp({
           email: getInternalEmail(dome),
-          password: employeeId,
+          password,
           options: {
             data: {
               full_name: fullName,
@@ -57,6 +58,8 @@ const Auth: React.FC = () => {
               phone: phone,
               dome: dome,
               employee_id: employeeId,
+              numDome: dome,
+              employeeId,
             },
           },
         });
@@ -64,7 +67,7 @@ const Auth: React.FC = () => {
         if (error) {
           if (error.message.includes("User already registered")) {
             throw new Error(
-              "Ce Dôme est déjà enregistré. Veuillez vous connecter avec votre ID employé.",
+              "Ce Dôme est déjà enregistré. Veuillez vous connecter avec votre mot de passe.",
             );
           }
           throw error;
@@ -73,7 +76,7 @@ const Auth: React.FC = () => {
         if (data?.user && data.session === null) {
           setMessage({
             type: "success",
-            text: "Inscription réussie ! Vous pouvez maintenant vous connecter.",
+            text: "Inscription reçue. Activation du compte par un administrateur requise.",
           });
         } else {
           setMessage({ type: "success", text: "Compte créé avec succès !" });
@@ -128,7 +131,7 @@ const Auth: React.FC = () => {
           </h2>
           <p className="muted">
             {mode === "login"
-              ? "Connectez-vous avec votre dôme et votre ID employé."
+              ? "Connectez-vous avec votre dôme et votre mot de passe."
               : "Renseignez vos informations pour accéder à ADT."}
           </p>
           <form
@@ -160,22 +163,27 @@ const Auth: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="employee-id">ID employé</label>
+                <label htmlFor="account-password">Mot de passe</label>
                 <input
-                  id="employee-id"
+                  id="account-password"
                   type="password"
                   autoComplete={
                     mode === "login" ? "current-password" : "new-password"
                   }
                   required
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                  placeholder="Votre identifiant"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={mode === "register" ? 12 : undefined}
+                  placeholder="Votre mot de passe"
                 />
               </div>
             </div>
             {mode === "register" && (
               <>
+                <div>
+                  <label htmlFor="employee-id">ID employé</label>
+                  <input id="employee-id" required value={employeeId} onChange={e => setEmployeeId(e.target.value)} />
+                </div>
                 <div>
                   <label htmlFor="full-name">Nom complet</label>
                   <input
