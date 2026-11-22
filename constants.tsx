@@ -2,6 +2,7 @@
 import { DocumentType } from './types';
 
 export const TCT_COLUMNS = [
+  { key: 'horaire', label: 'Date horaire (AAAAMMJJ)' },
   { key: 'tournee', label: 'Tournée' },
   { key: 'nom', label: 'Nom' },
   { key: 'debTour', label: 'Déb tour' },
@@ -9,7 +10,7 @@ export const TCT_COLUMNS = [
   { key: 'clVeh', label: 'Cl véh' },
   { key: 'employe', label: 'Employé' },
   { key: 'nomEmploye', label: 'Nom de l\'employé' },
-  { key: 'employeConfirm', label: 'Employé (Confirm)' },
+  { key: 'employeConfirm', label: 'Employé affecté' },
   { key: 'vehicule', label: 'Véhicule' },
   { key: 'changement', label: 'Changement' },
   { key: 'changementPar', label: 'Changement par' },
@@ -17,6 +18,7 @@ export const TCT_COLUMNS = [
   { key: 'autoris', label: 'Autoris' },
   { key: 'approuve', label: 'Approuvé' },
   { key: 'retour', label: 'Retour' },
+  { key: 'statutFDR', label: 'Statut FDR' },
   { key: 'adresseDebut', label: 'Adresse de début' },
   { key: 'adresseFin', label: 'Adresse de fin' },
 ];

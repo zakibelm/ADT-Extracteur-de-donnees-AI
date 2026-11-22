@@ -1526,3 +1526,14 @@ input {
     transform: none;
   }
 }
+
+.admin-panel { padding: 32px; }
+.admin-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 20px 0; }
+.admin-actions [aria-pressed="true"] { outline: 2px solid var(--primary, #126b70); }
+.admin-table-wrap { overflow-x: auto; }
+.admin-table { border-collapse: collapse; width: 100%; background: white; }
+.admin-table th, .admin-table td { padding: 14px; text-align: left; border-bottom: 1px solid #e2e8e8; vertical-align: top; }
+.admin-table th { background: #eef4f4; }
+.admin-table code { overflow-wrap: anywhere; }
+.admin-table dd { margin: 0 0 8px; overflow-wrap: anywhere; }
+@media(max-width: 640px) { .admin-panel { padding: 16px; } }

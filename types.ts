@@ -5,6 +5,8 @@ export enum DocumentType {
 }
 
 export interface TCTData {
+  horaire?: string;
+  statutFDR?: string;
   id: string;
   tournee: string;
   nom: string;

@@ -15,9 +15,10 @@ import {
 import Layout from "./components/Layout";
 import DataView from "./components/DataView";
 import Auth from "./components/Auth";
+import Admin from "./components/Admin";
 import { DocumentType, ExtractionResult, ExtractionRow } from "./types";
 import { extractDataWithGemini } from "./services/geminiService";
-import { supabase } from "./services/supabaseService";
+import { supabase, isAdtAdmin } from "./services/supabaseService";
 
 interface FileState {
   file: File;
@@ -503,6 +504,7 @@ const App: React.FC = () => {
             )}
           </>
         )}
+        {activeSection === "admin" && (isAdtAdmin(session?.user) ? <Admin /> : <p role="alert">Accès administrateur requis.</p>)}
         {activeSection === "settings" && (
           <>
             <header className="page-header">
