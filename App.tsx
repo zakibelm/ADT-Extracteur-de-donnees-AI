@@ -28,7 +28,48 @@ interface FileState {
   progress: number;
 }
 
+function PasswordSetup({token, onDone}: {token: string | null; onDone: () => void}) {
+  const [ready, setReady] = useState(false);
+  const [message, setMessage] = useState('Vérification du lien…');
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [busy, setBusy] = useState(false);
+  const verification = useRef<Promise<any> | null>(null);
+  useEffect(() => {
+    sessionStorage.setItem('adt_recovery_pending', 'true');
+    history.replaceState(null, '', location.pathname + location.search);
+    if (!verification.current) verification.current = token
+      ? supabase.auth.verifyOtp({token_hash: token, type: 'recovery'})
+      : supabase.auth.getUser();
+    let alive = true;
+    verification.current.then(({data, error}) => {
+      if (!alive) return;
+      if (error || !data.user) {setMessage('Lien expiré ou invalide. Demandez un nouveau lien d’activation.');return;}
+      setReady(true); setMessage('Choisissez un mot de passe personnel de 12 caractères minimum. Votre ID employé reste distinct.');
+    });
+    return () => {alive = false;};
+  }, [token]);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 12 || password !== confirmation) {setMessage('Les mots de passe doivent être identiques et contenir au moins 12 caractères.');return;}
+    setBusy(true);
+    const {error} = await supabase.auth.updateUser({password});
+    setBusy(false);
+    if (error) {setMessage('Mot de passe refusé. Vérifiez les règles ou demandez un nouveau lien.');return;}
+    setPassword('');setConfirmation('');sessionStorage.removeItem('adt_recovery_pending');onDone();
+  }
+  return <main className="auth-main"><section className="auth-form-wrap"><p className="eyebrow">ACTIVATION ADT</p><h1>Définir mon mot de passe</h1><p role="status">{message}</p>
+    {ready && <form className="auth-form" onSubmit={submit}>
+      <label htmlFor="new-password">Nouveau mot de passe</label><input id="new-password" autoComplete="new-password" type="password" minLength={12} required value={password} onChange={e=>setPassword(e.target.value)} />
+      <label htmlFor="confirm-password">Confirmer le mot de passe</label><input id="confirm-password" autoComplete="new-password" type="password" minLength={12} required value={confirmation} onChange={e=>setConfirmation(e.target.value)} />
+      <button className="button button-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Activer mon accès'}</button>
+    </form>}
+  </section></main>;
+}
+
 const App: React.FC = () => {
+  const [recoveryToken] = useState(() => new URLSearchParams(location.hash.slice(1)).get('adt_recovery'));
+  const [isRecovery, setIsRecovery] = useState(() => !!recoveryToken || sessionStorage.getItem('adt_recovery_pending') === 'true');
   const [session, setSession] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -55,9 +96,10 @@ const App: React.FC = () => {
     initAuth();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) =>
-      setSession(newSession),
-    );
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      setSession(newSession);
+      if (event === "PASSWORD_RECOVERY") setIsRecovery(true);
+    });
     return () => subscription.unsubscribe();
   }, []);
 
@@ -204,6 +246,7 @@ const App: React.FC = () => {
     completed: "Traité",
     error: "Échec du traitement",
   };
+  if (isRecovery) return <PasswordSetup token={recoveryToken} onDone={() => setIsRecovery(false)} />;
   if (isAuthLoading)
     return (
       <div className="loading-screen" role="status">

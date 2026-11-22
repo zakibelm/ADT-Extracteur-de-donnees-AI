@@ -25,6 +25,9 @@ async function run(request, responses, env={}) {
   assert.equal((await run(req,[...prefix,{data:{choices:[{finish_reason:'length',message:{content:'{}'}}]}}],env)).code,502);
   assert.equal((await run(req,[...prefix,{data:{choices:[{message:{content:'{"rows":[null]}'}}]}}],env)).code,502);
   const valid=await run(req,[...prefix,{data:{choices:[{message:{content:'{"rows":[{"tournee":" T1 ","untrusted":"discard"}]}'}}]}}],env);
-  assert.equal(valid.code,200);assert.equal(JSON.stringify(valid.body),'{"rows":[{"tournee":"T1"}]}');
+  assert.equal(valid.code,200);assert.equal(valid.body.rows[0].tournee,'T1'); assert.equal(valid.body.rows[0].untrusted,undefined);
+  const constantsContext={exports:{},require:()=>({})};
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync('constants.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,constantsContext);
+  assert.deepEqual(Object.keys(valid.body.rows[0]).sort(),Array.from(constantsContext.exports.TCT_COLUMNS,x=>x.key).sort());
   console.log('9 contrôles API réussis : accès, configuration, entrée, troncature et résultat.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

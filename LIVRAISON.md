@@ -37,3 +37,6 @@ Système de design : voir `DESIGN.md`.
 - Le document fourni et ses données personnelles ne sont pas inclus dans Git.
 - Limites : mot de passe du compte administrateur à définir par son titulaire ; parcours navigateur connecté et extraction IA réelle non encore validés. L’extraction passe par /api/extract, authentifié, avec OpenRouter côté serveur. Configurer OPENROUTER_API_KEY et OPENROUTER_MODEL (modèle vision + JSON) dans Vercel. Aucun secret IA injecté dans le bundle. Aucun appel IA réel exécuté sans ces paramètres.
 - Avis Supabase : protection contre les mots de passe compromis désactivée ; aucune alerte RLS sur les nouvelles tables.
+
+- Premier contrôle API en production : erreur de résolution ESM de `constants`. Corrigée en rendant la fonction autonome ; le test compare les champs serveur et frontend.
+- Activation : formulaire de définition du mot de passe prêt pour un lien natif de récupération Supabase. La fonction temporaire privilégiée proposée a été refusée par la validation automatique et n’a pas été déployée.
