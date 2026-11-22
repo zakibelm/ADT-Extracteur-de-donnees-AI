@@ -1541,3 +1541,13 @@ input {
 .password-input input { width: 100%; padding-right: 54px; }
 .password-toggle { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 8px; color: #175b61; background: transparent; cursor: pointer; }
 .password-toggle:focus-visible { outline: 2px solid #175b61; outline-offset: 1px; }
+.ai-settings { max-width: 980px; padding: 28px; }
+.ai-form { display: grid; gap: 20px; margin-top: 24px; }
+.ai-form label { display: block; font-weight: 600; margin-bottom: 8px; }
+.ai-form input:not([type="file"]), .ai-form textarea, .ai-form select { width: 100%; border: 1px solid #c9d6d8; border-radius: 10px; padding: 12px; background: white; color: #183c42; font: inherit; }
+.ai-form textarea { resize: vertical; line-height: 1.6; }
+.ai-form small { display: block; color: #526c71; margin-top: 7px; line-height: 1.5; }
+.ai-form fieldset { border: 1px solid #dce6e7; padding: 18px; border-radius: 12px; min-width: 0; }
+.ai-form legend { padding: 0 8px; font-weight: 600; }
+.ai-form input[type="file"] { display: block; max-width: 100%; margin: 12px 0; }
+@media(max-width:640px) { .ai-settings { padding: 18px; } }

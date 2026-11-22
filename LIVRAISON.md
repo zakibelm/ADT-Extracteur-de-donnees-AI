@@ -51,3 +51,16 @@ Système de design : voir `DESIGN.md`.
 - TypeScript, build, contrôles d’authentification simulés et neuf contrôles API réussis.
 - L’activation native exige que le destinataire ouvre son courriel et choisisse son mot de passe. La réception et le parcours humain ne sont pas prouvés par les tests simulés.
 - SMTP personnalisé non configuré : l’envoi à tous les nouveaux membres reste à qualifier après configuration.
+
+
+## Panneau OpenRouter et skills — configuration actuelle
+Cette section remplace les anciennes instructions de configuration IA par variables Vercel.
+- Paramètres administrateur : saisie de clé, modèle du catalogue images/JSON, instructions TCT et Olymel, import .md/.txt et vérification sans inférence payante.
+- Source effective : Supabase Vault et configuration privée, consommées par l’Edge Function adt-ai ; le proxy Vercel transmet seulement la demande d’extraction.
+- Aucun SKILL.md préexistant trouvé dans le dépôt. Les règles d’extraction déjà présentes sont conservées dans le contrat serveur ; des instructions métier modifiables sont préremplies dans l’interface.
+- Rôle administrateur vérifié côté serveur via Supabase Auth et le profil ADT ; paramètres refusés aux membres, même avec un faux rôle dans user_metadata.
+- Vault et quota testés en transaction annulée avec une clé synthétique : création, rotation, refus de lecture/écriture client et sixième requête de la minute refusée. Aucune clé réelle enregistrée pendant ces tests.
+- 18 contrôles IA simulés réussis : refus anonyme/session invalide/membre, secret absent des réponses, catalogue filtré, acteur de sauvegarde issu de l’identité vérifiée, clé invalide refusée, conflit, quota, réponse tronquée et modèle/skill effectivement lus côté serveur.
+- Edge Function déployée ; contrôles HTTP réels sans authentification et avec faux jeton : 401.
+- TypeScript et build Vite réussis. Aucun appel d’inférence OpenRouter réel effectué : la clé de l’administrateur doit être renseignée dans le nouveau panneau.
+- Avis : les tables privées avec RLS sans politique refusent intentionnellement les accès clients ; la protection Supabase contre les mots de passe compromis demeure désactivée. Voir https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection.

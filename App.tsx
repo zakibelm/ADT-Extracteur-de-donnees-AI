@@ -16,6 +16,7 @@ import Layout from "./components/Layout";
 import DataView from "./components/DataView";
 import Auth, { PasswordField } from "./components/Auth";
 import Admin from "./components/Admin";
+import AISettings from "./components/AISettings";
 import { DocumentType, ExtractionResult, ExtractionRow } from "./types";
 import { extractDataWithGemini } from "./services/geminiService";
 import { supabase, isAdtAdmin } from "./services/supabaseService";
@@ -74,7 +75,7 @@ const App: React.FC = () => {
   const [isRecovery, setIsRecovery] = useState(() => !!recoveryToken || new URLSearchParams(location.search).get('setup') === '1' || sessionStorage.getItem('adt_recovery_pending') === 'true');
   const [session, setSession] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState("dashboard");
+  const [activeSection, setActiveSection] = useState(() => new URLSearchParams(location.search).get("section") === "settings" ? "settings" : "dashboard");
   const [docType, setDocType] = useState<DocumentType>(DocumentType.TCT);
 
   const [files, setFiles] = useState<FileState[]>([]);
@@ -88,7 +89,10 @@ const App: React.FC = () => {
         const {
           data: { session: currentSession },
         } = await supabase.auth.getSession();
-        setSession(currentSession);
+        if (currentSession) {
+          const {data:{user}} = await supabase.auth.getUser();
+          setSession(user ? {...currentSession,user} : null);
+        } else setSession(null);
       } catch (err) {
         console.error(err);
       } finally {
@@ -553,30 +557,7 @@ const App: React.FC = () => {
           </>
         )}
         {activeSection === "admin" && (isAdtAdmin(session?.user) ? <Admin /> : <p role="alert">Accès administrateur requis.</p>)}
-        {activeSection === "settings" && (
-          <>
-            <header className="page-header">
-              <div>
-                <p className="eyebrow">VOTRE ESPACE</p>
-                <h1>Paramètres</h1>
-                <p className="muted">
-                  Informations sur le fonctionnement de l’extraction.
-                </p>
-              </div>
-            </header>
-            <section className="panel settings-panel">
-              <span className="format-icon">
-                <ShieldCheck size={23} />
-              </span>
-              <h2>Extraction assistée par IA</h2>
-              <p className="muted">
-                Le traitement utilise la configuration actuelle de votre
-                application. Vérifiez toujours les données extraites avant de
-                les sauvegarder.
-              </p>
-            </section>
-          </>
-        )}
+        {activeSection === "settings" && <AISettings isAdmin={isAdtAdmin(session?.user)} />}
       </div>
     </Layout>
   );
