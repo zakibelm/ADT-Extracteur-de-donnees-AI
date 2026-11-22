@@ -1,42 +1,34 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { DocumentType, ExtractionRow } from '../types';
+import { TCT_COLUMNS, OLYMEL_COLUMNS } from '../constants';
 
-const SUPABASE_URL = 'https://pbxgnwbdzgmgtikdblie.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_Q6XxtaFV_yYlIjmNOmRbvg_IDDQyDjA';
+export const supabase = createClient('https://csypcxkpipafxrjaborn.supabase.co', 'sb_publishable_C5bc98EYLigfq9_UsXWzBw_qk5QNyfi');
+export const internalEmail = (dome: string) => `${dome.trim().toLowerCase()}@adt-extracteur-ai.vercel.app`;
+export const isAdtAdmin = (user: any) => user?.app_metadata?.adt_role === 'admin';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-export const saveExtractionToSupabase = async (rows: ExtractionRow[], docType: DocumentType) => {
-  const table = docType === DocumentType.TCT ? 'extractions_tct' : 'extractions_olymel';
-  
-  // Récupérer l'ID utilisateur actuel
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // On prépare les données en mettant les clés en minuscules pour matcher le schéma SQL
-  const dataToInsert = rows.map(({ id, ...rest }) => {
-    const normalizedRow: any = {
-      user_id: user?.id,
-      created_at: new Date().toISOString()
-    };
-    
-    // Convertir chaque clé en minuscule (ex: debTour -> debtour)
-    Object.entries(rest).forEach(([key, value]) => {
-      normalizedRow[key.toLowerCase()] = value;
-    });
-    
-    return normalizedRow;
+export async function saveExtractionToSupabase(rows: ExtractionRow[], docType: DocumentType, requestId = crypto.randomUUID()) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) throw new Error('Connectez-vous pour sauvegarder.');
+  const columns = docType === DocumentType.TCT ? TCT_COLUMNS : OLYMEL_COLUMNS;
+  const records = rows.map((row, index) => {
+    const data = Object.fromEntries(columns.map(({key}) => [key, String((row as any)[key] ?? '')]));
+    const raw = data.horaire || '';
+    const date = /^\d{8}$/.test(raw) ? `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}` : null;
+    return { user_id: user.id, request_id: requestId, row_index: index, doc_type: docType,
+      source_file: String((row as any).source_file || ''), schedule_date: date, data };
   });
-
-  const { data, error } = await supabase
-    .from(table)
-    .insert(dataToInsert)
-    .select();
-
-  if (error) {
-    console.error('Erreur Supabase:', error);
-    throw new Error(`Erreur lors de la sauvegarde sur Supabase: ${error.message}`);
-  }
-
+  const { data, error } = await supabase.from('adt_extractions').upsert(records, {
+    onConflict: 'user_id,request_id,row_index', ignoreDuplicates: true,
+  }).select();
+  if (error) throw new Error(`Sauvegarde refusée : ${error.message}`);
   return data;
-};
+}
+
+export async function loadAdminPage(tab: 'users' | 'data', page = 0) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!isAdtAdmin(user)) throw new Error('Accès administrateur requis.');
+  const { data, error, count } = await supabase.from(tab === 'users' ? 'adt_profiles' : 'adt_extractions')
+    .select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(page * 25, page * 25 + 24);
+  if (error) throw new Error(error.message);
+  return { rows: data || [], count: count || 0 };
+}
