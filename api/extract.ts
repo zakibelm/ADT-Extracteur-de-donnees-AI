@@ -1,4 +1,5 @@
-import { TCT_COLUMNS, OLYMEL_COLUMNS } from '../constants';
+const TCT_COLUMNS = ['horaire','tournee','nom','debTour','finTour','clVeh','employe','nomEmploye','employeConfirm','vehicule','changement','changementPar','clVehAff','autoris','approuve','retour','statutFDR','adresseDebut','adresseFin'].map(key => ({key}));
+const OLYMEL_COLUMNS = ['semaine','jour','date','debut','fin','duree','chauffeur','vehicule','notes'].map(key => ({key}));
 
 export const config = { maxDuration: 60 };
 export default async function handler(req: any, res: any) {
