@@ -1,9 +1,18 @@
-
-import React, { useState } from 'react';
-import { Check, Edit2, Save, FileText, Table as TableIcon, AlertCircle, CloudUpload, Loader2, FileCode } from 'lucide-react';
-import { TCT_COLUMNS, OLYMEL_COLUMNS } from '../constants';
-import { DocumentType, ExtractionRow } from '../types';
-import { saveExtractionToSupabase } from '../services/supabaseService';
+import React, { useState } from "react";
+import {
+  Check,
+  Edit2,
+  Save,
+  FileText,
+  Table as TableIcon,
+  AlertCircle,
+  CloudUpload,
+  Loader2,
+  FileCode,
+} from "lucide-react";
+import { TCT_COLUMNS, OLYMEL_COLUMNS } from "../constants";
+import { DocumentType, ExtractionRow } from "../types";
+import { saveExtractionToSupabase } from "../services/supabaseService";
 
 interface DataViewProps {
   data: ExtractionRow[];
@@ -15,42 +24,49 @@ const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedRows, setEditedRows] = useState<ExtractionRow[]>(data);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">(
+    "idle",
+  );
 
   const columns = docType === DocumentType.TCT ? TCT_COLUMNS : OLYMEL_COLUMNS;
 
   const handleEditChange = (id: string, key: string, value: string) => {
-    setEditedRows(prev => prev.map(row => 
-      row.id === id ? { ...row, [key]: value } : row
-    ));
+    setEditedRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)),
+    );
   };
 
   const handleSupabaseSync = async () => {
     setIsSaving(true);
-    setSaveStatus('idle');
+    setSaveStatus("idle");
     try {
       await saveExtractionToSupabase(editedRows, docType);
-      setSaveStatus('success');
+      setSaveStatus("success");
       setTimeout(() => onSave(editedRows), 1500);
     } catch (err) {
-      setSaveStatus('error');
-      alert(err instanceof Error ? err.message : 'Erreur inconnue');
+      setSaveStatus("error");
+      alert(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleExportCSV = () => {
-    const headers = columns.map(c => c.label).join(',');
-    const rows = editedRows.map(row => 
-      columns.map(c => `"${(row as any)[c.key] || ''}"`).join(',')
-    ).join('\n');
-    
+    const headers = columns.map((c) => c.label).join(",");
+    const rows = editedRows
+      .map((row) =>
+        columns.map((c) => `"${(row as any)[c.key] || ""}"`).join(","),
+      )
+      .join("\n");
+
     const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + rows;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `extraction_${docType.toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `extraction_${docType.toLowerCase()}_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -59,94 +75,137 @@ const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
   const isEmpty = editedRows.length === 0;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 animate-in fade-in">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary-600/20 rounded-lg text-primary-400">
-            <TableIcon size={20} />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white">Résultats Combinés</h3>
-            <p className="text-xs text-slate-500">{editedRows.length} lignes extraites en parallèle</p>
-          </div>
+    <section className="results-panel" aria-labelledby="results-title">
+      <div className="results-toolbar">
+        <div>
+          <p className="eyebrow">VÉRIFICATION DES DONNÉES</p>
+          <h2 id="results-title">
+            Résultats de l’extraction{" "}
+            <span className="count-badge">{editedRows.length}</span>
+          </h2>
+          <p className="muted small">
+            Modifiez une ligne avec le crayon, puis exportez ou sauvegardez vos
+            données.
+          </p>
         </div>
-        
-        <div className="flex items-center gap-2">
-          {!isEmpty && (
-            <>
-              <button 
-                onClick={handleExportCSV}
-                className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all text-sm font-medium"
-              >
-                <FileText size={16} />
-                CSV
-              </button>
-              <button 
-                onClick={handleSupabaseSync}
-                disabled={isSaving}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-semibold shadow-lg ${
-                  saveStatus === 'success' 
-                  ? 'bg-emerald-600 text-white' 
-                  : 'bg-primary-600 hover:bg-primary-500 text-white shadow-primary-600/20'
-                }`}
-              >
-                {isSaving ? <Loader2 size={16} className="animate-spin" /> : saveStatus === 'success' ? <Check size={16} /> : <CloudUpload size={16} />}
-                {isSaving ? 'Synchronisation...' : saveStatus === 'success' ? 'Enregistré !' : 'Sauvegarder Supabase'}
-              </button>
-            </>
-          )}
-        </div>
+        {!isEmpty && (
+          <div className="toolbar-actions">
+            <button
+              className="button button-secondary"
+              onClick={handleExportCSV}
+            >
+              <FileText size={17} /> Exporter CSV
+            </button>
+            <button
+              className="button button-primary"
+              onClick={handleSupabaseSync}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <Loader2 size={17} className="spin" />
+              ) : saveStatus === "success" ? (
+                <Check size={17} />
+              ) : (
+                <CloudUpload size={17} />
+              )}
+              {isSaving
+                ? "Sauvegarde…"
+                : saveStatus === "success"
+                  ? "Enregistré !"
+                  : "Sauvegarder"}
+            </button>
+          </div>
+        )}
       </div>
-
-      <div className="flex-1 overflow-auto rounded-xl border border-slate-800 bg-dark-900 shadow-2xl custom-scrollbar">
+      {saveStatus === "error" && (
+        <p className="notice error" role="alert">
+          La sauvegarde a échoué. Vos données restent disponibles dans ce
+          tableau.
+        </p>
+      )}
+      {saveStatus === "success" && (
+        <p className="notice success" role="status">
+          Les données ont été enregistrées.
+        </p>
+      )}
+      <div
+        className="table-container"
+        role="region"
+        aria-label="Tableau des données extraites, défilement horizontal disponible"
+        tabIndex={0}
+      >
         {isEmpty ? (
-          <div className="h-full flex flex-col items-center justify-center p-12 text-slate-500">
-            <AlertCircle size={48} className="mb-4 opacity-20" />
-            <p>Aucune donnée n'a été extraite.</p>
+          <div className="empty-state">
+            <AlertCircle size={32} />
+            <h3>Aucune donnée extraite</h3>
+            <p>Essayez une image plus lisible.</p>
           </div>
         ) : (
-          <table className="w-full border-collapse text-sm text-left">
-            <thead className="sticky top-0 bg-dark-800 border-b border-slate-700 z-10">
+          <table>
+            <caption className="visually-hidden">
+              Données extraites des documents {docType}
+            </caption>
+            <thead>
               <tr>
-                <th className="p-4 w-12 text-center text-slate-500 font-medium">#</th>
-                <th className="p-4 text-slate-400 font-semibold whitespace-nowrap min-w-[150px] bg-dark-800/80 backdrop-blur-sm border-r border-slate-700">Source Document</th>
-                {columns.map(col => (
-                  <th key={col.key} className="p-4 text-slate-400 font-semibold whitespace-nowrap min-w-[150px]">
+                <th scope="col">Nº</th>
+                <th scope="col">Document source</th>
+                {columns.map((col) => (
+                  <th scope="col" key={col.key}>
                     {col.label}
                   </th>
                 ))}
-                <th className="p-4 w-12 sticky right-0 bg-dark-800 border-l border-slate-700"></th>
+                <th scope="col" className="sticky-action">
+                  Modifier
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody>
               {editedRows.map((row, idx) => (
-                <tr key={row.id} className="group hover:bg-slate-800/30 transition-colors">
-                  <td className="p-4 text-center text-slate-600 font-mono text-xs">{idx + 1}</td>
-                  <td className="p-4 text-xs font-medium text-primary-400/80 italic border-r border-slate-800/50 max-w-[150px] truncate">
-                    {(row as any).source_file || 'Inconnu'}
+                <tr key={row.id}>
+                  <td className="row-number">
+                    {String(idx + 1).padStart(2, "0")}
                   </td>
-                  {columns.map(col => (
-                    <td key={col.key} className="p-2">
+                  <td className="source-cell" title={(row as any).source_file}>
+                    {(row as any).source_file || "Inconnu"}
+                  </td>
+                  {columns.map((col) => (
+                    <td key={col.key}>
                       {editingId === row.id ? (
-                        <input 
+                        <input
                           type="text"
-                          value={(row as any)[col.key] || ''}
-                          onChange={(e) => handleEditChange(row.id, col.key, e.target.value)}
-                          className="w-full bg-dark-950 border border-slate-700 rounded px-2 py-1.5 text-slate-200 focus:outline-none focus:border-primary-500"
+                          aria-label={`${col.label}, ligne ${idx + 1}`}
+                          value={(row as any)[col.key] || ""}
+                          onChange={(e) =>
+                            handleEditChange(row.id, col.key, e.target.value)
+                          }
                         />
                       ) : (
-                        <div className="px-2 py-1.5 whitespace-nowrap truncate max-w-xs text-slate-300">
-                          {(row as any)[col.key] ? (row as any)[col.key] : <span className="text-slate-700 italic text-[10px]">vide</span>}
-                        </div>
+                        <span className="table-value">
+                          {(row as any)[col.key] || (
+                            <span className="empty-value">—</span>
+                          )}
+                        </span>
                       )}
                     </td>
                   ))}
-                  <td className="p-4 sticky right-0 group-hover:bg-slate-800/30 transition-colors border-l border-slate-800/50 bg-dark-900/80 backdrop-blur-sm">
-                    <button 
-                      onClick={() => setEditingId(editingId === row.id ? null : row.id)}
-                      className="p-1.5 text-slate-500 hover:text-primary-400 transition-colors"
+                  <td className="sticky-action">
+                    <button
+                      className="icon-button"
+                      aria-label={
+                        editingId === row.id
+                          ? `Terminer la modification de la ligne ${idx + 1}`
+                          : `Modifier la ligne ${idx + 1}`
+                      }
+                      aria-pressed={editingId === row.id}
+                      onClick={() =>
+                        setEditingId(editingId === row.id ? null : row.id)
+                      }
                     >
-                      {editingId === row.id ? <Check size={16} /> : <Edit2 size={16} />}
+                      {editingId === row.id ? (
+                        <Check size={17} />
+                      ) : (
+                        <Edit2 size={17} />
+                      )}
                     </button>
                   </td>
                 </tr>
@@ -155,8 +214,14 @@ const DataView: React.FC<DataViewProps> = ({ data, docType, onSave }) => {
           </table>
         )}
       </div>
-    </div>
+      <div className="table-footer">
+        <span>
+          {editedRows.length} ligne{editedRows.length > 1 ? "s" : ""} ·{" "}
+          {columns.length} champs
+        </span>
+        <span>Vérifiez les informations avant sauvegarde.</span>
+      </div>
+    </section>
   );
 };
-
 export default DataView;

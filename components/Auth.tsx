@@ -1,20 +1,35 @@
-
-import React, { useState } from 'react';
-import { supabase } from '../services/supabaseService';
-import { Mail, Lock, Loader2, LogIn, UserPlus, ArrowLeft, KeyRound, AlertCircle, User, Phone, Hash } from 'lucide-react';
+import React, { useState } from "react";
+import { supabase } from "../services/supabaseService";
+import {
+  Mail,
+  Lock,
+  Loader2,
+  LogIn,
+  UserPlus,
+  ArrowLeft,
+  KeyRound,
+  AlertCircle,
+  User,
+  Phone,
+  Hash,
+} from "lucide-react";
 
 const Auth: React.FC = () => {
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
-  const [dome, setDome] = useState('');
-  const [employeeId, setEmployeeId] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [dome, setDome] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
-  const getInternalEmail = (domeVal: string) => `${domeVal.toLowerCase().trim()}@adt.system`;
+  const getInternalEmail = (domeVal: string) =>
+    `${domeVal.toLowerCase().trim()}@adt.system`;
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,15 +37,18 @@ const Auth: React.FC = () => {
     setMessage(null);
 
     try {
-      if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ 
-          email: getInternalEmail(dome), 
-          password: employeeId 
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: getInternalEmail(dome),
+          password: employeeId,
         });
-        if (error) throw new Error("Dôme ou ID employé incorrect. Si vous n'avez pas de compte, cliquez sur 'S'inscrire ici'.");
-      } else if (mode === 'register') {
-        const { error, data } = await supabase.auth.signUp({ 
-          email: getInternalEmail(dome), 
+        if (error)
+          throw new Error(
+            "Dôme ou ID employé incorrect. Si vous n'avez pas de compte, cliquez sur 'S'inscrire ici'.",
+          );
+      } else if (mode === "register") {
+        const { error, data } = await supabase.auth.signUp({
+          email: getInternalEmail(dome),
           password: employeeId,
           options: {
             data: {
@@ -38,134 +56,188 @@ const Auth: React.FC = () => {
               real_email: email,
               phone: phone,
               dome: dome,
-              employee_id: employeeId
-            }
-          }
+              employee_id: employeeId,
+            },
+          },
         });
-        
+
         if (error) {
-          if (error.message.includes('User already registered')) {
-            throw new Error("Ce Dôme est déjà enregistré. Veuillez vous connecter avec votre ID employé.");
+          if (error.message.includes("User already registered")) {
+            throw new Error(
+              "Ce Dôme est déjà enregistré. Veuillez vous connecter avec votre ID employé.",
+            );
           }
           throw error;
         }
 
         if (data?.user && data.session === null) {
-          setMessage({ type: 'success', text: 'Inscription réussie ! Vous pouvez maintenant vous connecter.' });
+          setMessage({
+            type: "success",
+            text: "Inscription réussie ! Vous pouvez maintenant vous connecter.",
+          });
         } else {
-          setMessage({ type: 'success', text: 'Compte créé avec succès !' });
+          setMessage({ type: "success", text: "Compte créé avec succès !" });
         }
-        setTimeout(() => setMode('login'), 2000);
+        setTimeout(() => setMode("login"), 2000);
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-dark-950">
-      <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-300">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4 shadow-xl shadow-primary-600/20">
-            <KeyRound className="text-white" size={32} />
-          </div>
-          <h2 className="text-3xl font-bold text-white tracking-tight">
-            {mode === 'login' ? 'Connexion ADT' : mode === 'register' ? 'Créer un compte' : 'Récupération'}
-          </h2>
-          <p className="text-slate-500 mt-2">
-            {mode === 'login' ? 'Entrez votre Dôme et ID Employé' : 'Complétez votre profil chauffeur'}
+    <div className="auth-layout">
+      <section className="auth-story">
+        <a href="#auth-form" className="brand">
+          <span className="brand-symbol">
+            a<span>↗</span>
+          </span>
+          <span>
+            <strong>ADT.</strong>
+            <small>EXTRACTION DE DONNÉES</small>
+          </span>
+        </a>
+        <div>
+          <p className="eyebrow light">VOTRE POSTE DE CONTRÔLE</p>
+          <h1>
+            Vos documents.
+            <br />
+            Des données claires.
+            <br />
+            <em>Les opérations avancent.</em>
+          </h1>
+          <p>
+            Transformez vos documents de transport en tableaux prêts à vérifier
+            et à utiliser.
           </p>
+          <div className="auth-flow">
+            <span>01 · Importer</span>
+            <span>02 · Extraire</span>
+            <span>03 · Vérifier</span>
+          </div>
         </div>
-
-        <form onSubmit={handleAuth} className="bg-dark-900 border border-slate-800 p-8 rounded-3xl shadow-2xl space-y-5">
-          {message && (
-            <div className={`p-4 rounded-xl flex items-start gap-3 text-sm animate-in slide-in-from-top-2 ${
-              message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
-            }`}>
-              <AlertCircle size={18} className="shrink-0 mt-0.5" />
-              <p>{message.text}</p>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Dôme</label>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                  <input 
-                    type="text" required value={dome}
-                    onChange={(e) => setDome(e.target.value)}
-                    className="w-full bg-dark-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-slate-200 focus:border-primary-500 outline-none text-sm"
-                    placeholder="Ex: 405"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">ID Employé</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                  <input 
-                    type="password" required value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
-                    className="w-full bg-dark-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-slate-200 focus:border-primary-500 outline-none text-sm"
-                    placeholder="••••"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {mode === 'register' && (
-              <div className="space-y-4 animate-in fade-in">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Nom Complet</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                    <input 
-                      type="text" required value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full bg-dark-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-slate-200 focus:border-primary-500 outline-none text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Email Réel</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                    <input 
-                      type="email" required value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-dark-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-slate-200 focus:border-primary-500 outline-none text-sm"
-                    />
-                  </div>
-                </div>
+        <span className="auth-caption">PENSÉ POUR LE TRAVAIL AU QUOTIDIEN</span>
+      </section>
+      <section className="auth-main">
+        <div className="auth-form-wrap">
+          <p className="eyebrow">BIENVENUE DANS VOTRE ESPACE</p>
+          <h2>
+            {mode === "login" ? "Reprenons le travail." : "Créez votre compte."}
+          </h2>
+          <p className="muted">
+            {mode === "login"
+              ? "Connectez-vous avec votre dôme et votre ID employé."
+              : "Renseignez vos informations pour accéder à ADT."}
+          </p>
+          <form
+            id="auth-form"
+            onSubmit={handleAuth}
+            className="auth-form"
+            aria-busy={loading}
+          >
+            {message && (
+              <div
+                className={`notice ${message.type}`}
+                role={message.type === "error" ? "alert" : "status"}
+              >
+                <AlertCircle size={18} />
+                <span>{message.text}</span>
               </div>
             )}
+            <div className="auth-fields">
+              <div>
+                <label htmlFor="dome">Numéro de dôme</label>
+                <input
+                  id="dome"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  value={dome}
+                  onChange={(e) => setDome(e.target.value)}
+                  placeholder="Ex. 405"
+                />
+              </div>
+              <div>
+                <label htmlFor="employee-id">ID employé</label>
+                <input
+                  id="employee-id"
+                  type="password"
+                  autoComplete={
+                    mode === "login" ? "current-password" : "new-password"
+                  }
+                  required
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  placeholder="Votre identifiant"
+                />
+              </div>
+            </div>
+            {mode === "register" && (
+              <>
+                <div>
+                  <label htmlFor="full-name">Nom complet</label>
+                  <input
+                    id="full-name"
+                    type="text"
+                    autoComplete="name"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="real-email">Adresse courriel</label>
+                  <input
+                    id="real-email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="button button-primary full-width"
+            >
+              {loading ? (
+                <Loader2 className="spin" size={18} />
+              ) : (
+                <LogIn size={18} />
+              )}
+              {loading
+                ? "Veuillez patienter…"
+                : mode === "login"
+                  ? "Accéder à mon espace"
+                  : "Créer mon compte"}
+            </button>
+          </form>
+          <div className="auth-switch">
+            <span className="muted">
+              {mode === "login" ? "Première visite ?" : "Vous avez un compte ?"}
+            </span>
+            <button
+              className="text-button"
+              onClick={() => {
+                setMode(mode === "login" ? "register" : "login");
+                setMessage(null);
+              }}
+            >
+              {mode === "login" ? "Créer un compte" : "Se connecter"}
+            </button>
           </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary-600/20 disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : mode === 'login' ? <LogIn size={20} /> : <UserPlus size={20} />}
-            {mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
-          </button>
-        </form>
-
-        <div className="text-center">
-          <button 
-            onClick={() => setMode(mode === 'login' ? 'register' : 'login')} 
-            className="text-sm text-slate-500 hover:text-primary-400"
-          >
-            {mode === 'login' ? "Pas encore de compte ? S'inscrire ici" : "Déjà un compte ? Se connecter"}
-          </button>
+          <p className="auth-footnote">
+            <Lock size={13} /> Accès réservé aux utilisateurs disposant d’un
+            compte ADT.
+          </p>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
-
 export default Auth;
