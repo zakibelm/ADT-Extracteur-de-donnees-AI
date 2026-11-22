@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Layout from "./components/Layout";
 import DataView from "./components/DataView";
-import Auth from "./components/Auth";
+import Auth, { PasswordField } from "./components/Auth";
 import Admin from "./components/Admin";
 import { DocumentType, ExtractionResult, ExtractionRow } from "./types";
 import { extractDataWithGemini } from "./services/geminiService";
@@ -37,7 +37,7 @@ function PasswordSetup({token, onDone}: {token: string | null; onDone: () => voi
   const verification = useRef<Promise<any> | null>(null);
   useEffect(() => {
     sessionStorage.setItem('adt_recovery_pending', 'true');
-    history.replaceState(null, '', location.pathname + location.search);
+
     if (!verification.current) verification.current = token
       ? supabase.auth.verifyOtp({token_hash: token, type: 'recovery'})
       : supabase.auth.getUser();
@@ -45,6 +45,7 @@ function PasswordSetup({token, onDone}: {token: string | null; onDone: () => voi
     verification.current.then(({data, error}) => {
       if (!alive) return;
       if (error || !data.user) {setMessage('Lien expiré ou invalide. Demandez un nouveau lien d’activation.');return;}
+      history.replaceState(null, '', location.pathname);
       setReady(true); setMessage('Choisissez un mot de passe personnel de 12 caractères minimum. Votre ID employé reste distinct.');
     });
     return () => {alive = false;};
@@ -60,16 +61,17 @@ function PasswordSetup({token, onDone}: {token: string | null; onDone: () => voi
   }
   return <main className="auth-main"><section className="auth-form-wrap"><p className="eyebrow">ACTIVATION ADT</p><h1>Définir mon mot de passe</h1><p role="status">{message}</p>
     {ready && <form className="auth-form" onSubmit={submit}>
-      <label htmlFor="new-password">Nouveau mot de passe</label><input id="new-password" autoComplete="new-password" type="password" minLength={12} required value={password} onChange={e=>setPassword(e.target.value)} />
-      <label htmlFor="confirm-password">Confirmer le mot de passe</label><input id="confirm-password" autoComplete="new-password" type="password" minLength={12} required value={confirmation} onChange={e=>setConfirmation(e.target.value)} />
+      <PasswordField id="new-password" label="Nouveau mot de passe" minLength={12} value={password} onChange={setPassword} />
+      <PasswordField id="confirm-password" label="Confirmer le mot de passe" minLength={12} value={confirmation} onChange={setConfirmation} />
       <button className="button button-primary" disabled={busy}>{busy ? 'Enregistrement…' : 'Activer mon accès'}</button>
     </form>}
+    {!ready && <button className="text-button" onClick={()=>{sessionStorage.removeItem("adt_recovery_pending");history.replaceState(null,"",location.pathname);onDone();}}>Retour à la connexion</button>}
   </section></main>;
 }
 
 const App: React.FC = () => {
   const [recoveryToken] = useState(() => new URLSearchParams(location.hash.slice(1)).get('adt_recovery'));
-  const [isRecovery, setIsRecovery] = useState(() => !!recoveryToken || sessionStorage.getItem('adt_recovery_pending') === 'true');
+  const [isRecovery, setIsRecovery] = useState(() => !!recoveryToken || new URLSearchParams(location.search).get('setup') === '1' || sessionStorage.getItem('adt_recovery_pending') === 'true');
   const [session, setSession] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("dashboard");

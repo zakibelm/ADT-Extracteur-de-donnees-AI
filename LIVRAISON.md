@@ -40,3 +40,14 @@ Système de design : voir `DESIGN.md`.
 
 - Premier contrôle API en production : erreur de résolution ESM de `constants`. Corrigée en rendant la fonction autonome ; le test compare les champs serveur et frontend.
 - Activation : formulaire de définition du mot de passe prêt pour un lien natif de récupération Supabase. La fonction temporaire privilégiée proposée a été refusée par la validation automatique et n’a pas été déployée.
+
+
+## Inscription par courriel réel
+- Nouveau flux : dôme + ID employé + courriel, lien Supabase natif, choix d’un mot de passe personnel (12 caractères minimum et confirmation).
+- Connexion : dôme + courriel + mot de passe. Aucune résolution publique d’un dôme vers un courriel.
+- Bouton œil sur connexion, nouveau mot de passe et confirmation ; aucune fonction de déchiffrement des mots de passe enregistrés.
+- Migration `adt_real_email_registration` appliquée ; profil de membre créé avec le rôle utilisateur. Un faux rôle admin dans les métadonnées utilisateur reste sans effet. Test SQL synthétique annulé avec succès.
+- Le profil administrateur existant a été rattaché au courriel réel demandé. L’alias de préparation inutilisé n’a plus le rôle ADT et est bloqué.
+- TypeScript, build, contrôles d’authentification simulés et neuf contrôles API réussis.
+- L’activation native exige que le destinataire ouvre son courriel et choisisse son mot de passe. La réception et le parcours humain ne sont pas prouvés par les tests simulés.
+- SMTP personnalisé non configuré : l’envoi à tous les nouveaux membres reste à qualifier après configuration.

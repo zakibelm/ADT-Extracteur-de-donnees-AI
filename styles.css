@@ -1537,3 +1537,7 @@ input {
 .admin-table code { overflow-wrap: anywhere; }
 .admin-table dd { margin: 0 0 8px; overflow-wrap: anywhere; }
 @media(max-width: 640px) { .admin-panel { padding: 16px; } }
+.password-input { position: relative; }
+.password-input input { width: 100%; padding-right: 54px; }
+.password-toggle { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 8px; color: #175b61; background: transparent; cursor: pointer; }
+.password-toggle:focus-visible { outline: 2px solid #175b61; outline-offset: 1px; }
