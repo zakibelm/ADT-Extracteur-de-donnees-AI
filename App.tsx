@@ -110,9 +110,10 @@ const App: React.FC = () => {
           ),
         );
 
+        let progressInterval: ReturnType<typeof setInterval> | undefined;
         try {
           // Simulation de progression pour l'UX car le modèle Pro est plus lent
-          const progressInterval = setInterval(() => {
+          progressInterval = setInterval(() => {
             setFiles((prev) =>
               prev.map((f) => {
                 if (
@@ -149,7 +150,9 @@ const App: React.FC = () => {
               f.id === fileObj.id ? { ...f, status: "error", progress: 0 } : f,
             ),
           );
-          return [];
+          throw err;
+        } finally {
+          if (progressInterval) clearInterval(progressInterval);
         }
       });
 
@@ -164,7 +167,7 @@ const App: React.FC = () => {
       setResult({
         rows: flattenedRows as ExtractionRow[],
         timestamp: new Date().toISOString(),
-        modelUsed: "gemini-3-pro-preview",
+        modelUsed: "OpenRouter (serveur)",
         docType: docType,
       });
     } catch (err: any) {
@@ -389,7 +392,7 @@ const App: React.FC = () => {
                     multiple
                     ref={fileInputRef}
                     className="visually-hidden"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={handleFileChange}
                     disabled={isExtracting}
                   />

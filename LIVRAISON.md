@@ -33,7 +33,7 @@ Système de design : voir `DESIGN.md`.
 - Administration : consultation paginée des utilisateurs et des lignes sauvegardées. Le rôle est validé depuis app_metadata.adt_role, jamais user_metadata.
 - Modèle TCT : date du document, deux colonnes employé distinctes, statut FDR, cases cochées et provenance. Les valeurs tronquées ne doivent pas être inventées.
 - Tests SQL en transaction annulée : lecture propre, isolation entre deux utilisateurs, refus de changement de rôle, refus d’insertion pour autrui, refus de transfert de propriétaire, lecture administrateur et refus anonyme. Tous passés sur la base cible.
-- Vérification locale : TypeScript et build Vite réussis.
+- Vérification locale : TypeScript, build Vite et neuf contrôles API (`node extract.test.cjs`) réussis.
 - Le document fourni et ses données personnelles ne sont pas inclus dans Git.
-- Limites : mot de passe du compte administrateur à définir par son titulaire ; parcours navigateur connecté et extraction IA réelle non encore validés. Le fournisseur IA historique nécessite sa configuration ; ne pas injecter une clé secrète dans un bundle public.
+- Limites : mot de passe du compte administrateur à définir par son titulaire ; parcours navigateur connecté et extraction IA réelle non encore validés. L’extraction passe par /api/extract, authentifié, avec OpenRouter côté serveur. Configurer OPENROUTER_API_KEY et OPENROUTER_MODEL (modèle vision + JSON) dans Vercel. Aucun secret IA injecté dans le bundle. Aucun appel IA réel exécuté sans ces paramètres.
 - Avis Supabase : protection contre les mots de passe compromis désactivée ; aucune alerte RLS sur les nouvelles tables.
